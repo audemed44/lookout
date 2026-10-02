@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -197,5 +199,25 @@ func TestTargetsMasked(t *testing.T) {
 	}
 	if code, _ := e.do("POST", "/api/targets", "tok", `{"name":"x","url":"smtp://x","enabled":true}`); code != 400 {
 		t.Errorf("unsupported: %d", code)
+	}
+}
+
+func TestDeletingADiscoveredCheckIgnoresItsDomain(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	for _, src := range []string{"gatehouse", "npm", "kuma"} {
+		c := store.Check{Name: src + ".example.com", Type: store.HTTP, Target: "https://" + src + ".example.com",
+			Source: src, SourceKey: src + ".example.com"}
+		c.Defaults()
+		if err := e.db.SaveCheck(ctx, &c); err != nil {
+			t.Fatal(err)
+		}
+		if code, body := e.do("DELETE", fmt.Sprintf("/api/checks/%d", c.ID), "tok", ""); code != 204 {
+			t.Fatalf("delete %s: %d %s", src, code, body)
+		}
+	}
+	st, _ := e.db.Settings(ctx)
+	if !slices.Equal(st.Discovery.Ignored, []string{"gatehouse.example.com", "npm.example.com"}) {
+		t.Fatalf("ignored: %v", st.Discovery.Ignored)
 	}
 }
