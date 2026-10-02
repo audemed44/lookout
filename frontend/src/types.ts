@@ -1,6 +1,7 @@
 export type CheckType = "http" | "tcp" | "ping" | "dns" | "docker" | "tls" | "push";
 
-export type Status = "up" | "down" | "pending" | "paused" | "maintenance" | "unknown" | "running";
+export type Status =
+  "up" | "down" | "pending" | "paused" | "maintenance" | "unknown" | "running" | "asleep";
 
 export interface Check {
   id: number;

@@ -64,7 +64,9 @@ func main() {
 		checks.Docker = dock
 	}
 	var proxy discovery.Source
-	if u := os.Getenv("LOOKOUT_NPM_URL"); u != "" {
+	if u := os.Getenv("LOOKOUT_GATEHOUSE_URL"); u != "" {
+		proxy = &discovery.Gatehouse{URL: u, Token: os.Getenv("LOOKOUT_GATEHOUSE_TOKEN")}
+	} else if u := os.Getenv("LOOKOUT_NPM_URL"); u != "" {
 		proxy = &discovery.NPM{URL: u, Email: os.Getenv("LOOKOUT_NPM_EMAIL"), Password: os.Getenv("LOOKOUT_NPM_PASSWORD")}
 	}
 

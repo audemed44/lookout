@@ -19,7 +19,11 @@ embedded in the binary. Everything lives in SQLite at `/data/lookout.db`
 - `internal/notify`: targets as Apprise URLs (`tgram://`, `ntfy://`,
   `discord://`, `json://`), routes, dedupe, quiet hours, digests.
 - `internal/speedtest`: cron-scheduled speedtests via speedtest-go.
-- `internal/discovery`: checks from Nginx Proxy Manager's proxy hosts.
+- `internal/discovery`: checks from the proxy's hosts (Gatehouse's
+  discovery API, or Nginx Proxy Manager), and which containers Gatehouse
+  has put to sleep. HTTP checks send `X-Gatehouse-Probe` so they never
+  wake an app; one that answers asleep is shown asleep, not down, and
+  nothing goes in its history.
 - `internal/importer`: Uptime Kuma and Speedtest Tracker databases.
 - `internal/config`: YAML export/import.
 

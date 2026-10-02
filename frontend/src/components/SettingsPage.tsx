@@ -307,14 +307,16 @@ function Discovery(props: { settings: Settings; onChange: (s: Settings) => void 
         )}
       </SectionHead>
       <p class="field-hint">
-        Adds an HTTP check for every domain Nginx Proxy Manager serves (any answer under 500 counts
-        as up, so login pages pass). Deleting a discovered check ignores its domain.
+        Adds an HTTP check for every domain your proxy (Gatehouse or Nginx Proxy Manager) serves
+        (any answer under 500 counts as up, so login pages pass). Deleting a discovered check
+        ignores its domain. Apps Gatehouse has put to sleep show as asleep, not down.
       </p>
       {info.data && !info.data.configured && (
         <div class="note">
-          Set <code>LOOKOUT_NPM_URL</code> (e.g. <code>http://npm:81</code>),{" "}
-          <code>LOOKOUT_NPM_EMAIL</code> and <code>LOOKOUT_NPM_PASSWORD</code> in the stack's .env
-          to turn this on.
+          Set <code>LOOKOUT_GATEHOUSE_URL</code> (e.g. <code>http://gatehouse:8081</code>) and{" "}
+          <code>LOOKOUT_GATEHOUSE_TOKEN</code> in the stack's .env to turn this on, or{" "}
+          <code>LOOKOUT_NPM_URL</code>, <code>LOOKOUT_NPM_EMAIL</code> and{" "}
+          <code>LOOKOUT_NPM_PASSWORD</code> for Nginx Proxy Manager.
         </div>
       )}
       {sync.error && <ErrorNote>{sync.error}</ErrorNote>}

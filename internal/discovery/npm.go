@@ -23,8 +23,8 @@ type Route struct {
 	HTTPS  bool   `json:"https"`
 }
 
-// Source lists the proxy's routes. Nginx Proxy Manager is the one there is;
-// the planned proxy app's read-only API would be another.
+// Source lists the proxy's routes: Gatehouse's discovery API, or Nginx
+// Proxy Manager's.
 type Source interface {
 	Name() string
 	Routes(ctx context.Context) ([]Route, error)

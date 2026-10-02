@@ -30,6 +30,7 @@ type Engine struct {
 	mu      sync.Mutex
 	checks  map[int64]*entry
 	windows []store.Window
+	asleep  map[string]string // container → Gatehouse sleep state
 	ctx     context.Context
 	sem     chan struct{} // limits probes running at once
 }
@@ -116,8 +117,17 @@ func (e *Engine) run(ctx context.Context, id int64) {
 	}
 	c := en.check
 	maint := e.inMaintenanceLocked(c, e.Now())
+	sleepState, sleeping := "", false
+	if c.Type == store.Docker {
+		sleepState, sleeping = e.asleep[c.Target]
+	}
 	e.mu.Unlock()
 	if maint {
+		return
+	}
+	if sleeping {
+		// Stopped on purpose; Docker would report it exited.
+		e.Record(c.ID, asleep(e.Now(), sleepState))
 		return
 	}
 	select {
@@ -152,8 +162,12 @@ func (e *Engine) RunNow(ctx context.Context, id int64) (Outcome, error) {
 // Record stores an outcome and moves the check's state along.
 func (e *Engine) Record(id int64, out Outcome) {
 	now := e.Now()
-	res := store.Result{Time: now, OK: out.OK, Latency: ms(out.Latency), Message: out.Message}
 	ctx := context.Background()
+	if out.Asleep {
+		e.recordAsleep(ctx, id, out, now)
+		return
+	}
+	res := store.Result{Time: now, OK: out.OK, Latency: ms(out.Latency), Message: out.Message}
 	if err := e.Store.AddResult(ctx, id, res); err != nil {
 		slog.Warn("could not save a result", "check", id, "err", err)
 	}
@@ -165,7 +179,7 @@ func (e *Engine) Record(id int64, out Outcome) {
 	}
 	c := en.check
 	st := &en.state
-	st.Last, st.Latency, st.Message = now, res.Latency, out.Message
+	st.Last, st.Latency, st.Message, st.Asleep = now, res.Latency, out.Message, false
 	ev := e.apply(c, st, out.OK, out.Message, now)
 	if !out.CertExpires.IsZero() {
 		ev.notes = append(ev.notes, certNotes(c, st, out.CertExpires, now)...)
@@ -183,6 +197,33 @@ func (e *Engine) Record(id int64, out Outcome) {
 		slog.Warn("could not save state", "check", id, "err", err)
 	}
 	e.send(c, ev.notes)
+}
+
+// recordAsleep notes that the app is asleep. Nothing goes in the history
+// and the up/down state machine doesn't move, so there's no alert and no
+// dent in uptime.
+func (e *Engine) recordAsleep(ctx context.Context, id int64, out Outcome, now time.Time) {
+	e.mu.Lock()
+	en, ok := e.checks[id]
+	if !ok {
+		e.mu.Unlock()
+		return
+	}
+	st := &en.state
+	st.Last, st.Message, st.Asleep, st.Fails = now, out.Message, true, 0
+	saved := *st
+	e.mu.Unlock()
+	if err := e.Store.SaveState(ctx, id, saved); err != nil {
+		slog.Warn("could not save state", "check", id, "err", err)
+	}
+}
+
+// SetAsleep replaces the containers Gatehouse has put to sleep (container
+// name → its state), for Docker checks.
+func (e *Engine) SetAsleep(containers map[string]string) {
+	e.mu.Lock()
+	e.asleep = containers
+	e.mu.Unlock()
 }
 
 type events struct {
@@ -439,6 +480,8 @@ func (e *Engine) viewLocked(en *entry, now time.Time) View {
 		v.Status = store.Maintenance
 	case en.check.Type == store.Push && !en.state.Started.IsZero() && en.state.Status != store.Down:
 		v.Status = store.Running
+	case en.state.Asleep:
+		v.Status = store.Asleep
 	}
 	return v
 }
