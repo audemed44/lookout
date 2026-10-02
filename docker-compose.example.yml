@@ -1,0 +1,27 @@
+# Lookout watches your services, takes heartbeats from jobs, runs
+# speedtests and delivers notifications. Put it in your main stack, or its
+# own if you'd like it to keep watching while that stack redeploys.
+services:
+  lookout:
+    image: ghcr.io/audemed44/lookout:latest
+    container_name: lookout
+    restart: unless-stopped
+    # The docker group's ID on the host (`getent group docker`), for
+    # container checks. Leave out with the socket if you don't want them.
+    group_add: ["111"]
+    environment:
+      # openssl rand -hex 24; what you sign in with, and Foyer's widget key.
+      - LOOKOUT_TOKEN=${LOOKOUT_TOKEN}
+      - TZ=Europe/London # quiet hours, digests and the speedtest schedule
+      # Notification targets can read their URL from here: add a target
+      # with the URL ${TELEGRAM_URL}.
+      - TELEGRAM_URL=${TELEGRAM_URL} # tgram://<bot token>/<chat id>
+      # Optional: a check for every Nginx Proxy Manager proxy host.
+      # - LOOKOUT_NPM_URL=http://npm:81
+      # - LOOKOUT_NPM_EMAIL=${NPM_EMAIL}
+      # - LOOKOUT_NPM_PASSWORD=${NPM_PASSWORD}
+    volumes:
+      - ./lookout:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "3001:8080"
