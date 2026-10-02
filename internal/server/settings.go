@@ -123,7 +123,7 @@ func (s *Server) syncDiscovery(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-var errNoProxy = errors.New("no proxy configured: set LOOKOUT_NPM_URL, LOOKOUT_NPM_EMAIL and LOOKOUT_NPM_PASSWORD")
+var errNoProxy = errors.New("no proxy configured: set LOOKOUT_GATEHOUSE_URL and LOOKOUT_GATEHOUSE_TOKEN (or LOOKOUT_NPM_URL, LOOKOUT_NPM_EMAIL and LOOKOUT_NPM_PASSWORD)")
 
 // Discover syncs checks with the proxy's routes.
 func (s *Server) Discover(ctx context.Context) (discovery.Result, error) {
@@ -177,12 +177,14 @@ func (s *Server) RunDiscovery(ctx context.Context) {
 	}
 	tick := time.NewTicker(time.Minute)
 	defer tick.Stop()
+	s.refreshAsleep(ctx)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
 		}
+		s.refreshAsleep(ctx)
 		settings, err := s.Store.Settings(ctx)
 		if err != nil || !settings.Discovery.Auto {
 			continue
@@ -196,6 +198,22 @@ func (s *Server) RunDiscovery(ctx context.Context) {
 			slog.Warn("discovery", "err", err)
 		}
 	}
+}
+
+// refreshAsleep tells the engine which containers the proxy has put to
+// sleep, so their Docker checks show them asleep rather than down. On an
+// error the last list is kept.
+func (s *Server) refreshAsleep(ctx context.Context) {
+	sl, ok := s.Proxy.(discovery.Sleeper)
+	if !ok {
+		return
+	}
+	asleep, err := sl.Asleep(ctx)
+	if err != nil {
+		slog.Debug("asleep containers", "err", err)
+		return
+	}
+	s.Engine.SetAsleep(asleep)
 }
 
 func (s *Server) ignoreDomain(w http.ResponseWriter, r *http.Request) {

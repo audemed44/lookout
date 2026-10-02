@@ -61,7 +61,7 @@ func count(rows []CheckRow) Counts {
 	for _, r := range rows {
 		c.Total++
 		switch r.Status {
-		case store.Up, store.Running:
+		case store.Up, store.Running, store.Asleep:
 			c.Up++
 		case store.Down:
 			c.Down++

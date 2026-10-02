@@ -73,3 +73,33 @@ func TestSync(t *testing.T) {
 		t.Error("bad login didn't fail")
 	}
 }
+
+func TestGatehouse(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/discovery" || r.Header.Get("Authorization") != "Bearer ro" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"hosts":[
+			{"domains":["Books.example.com","shelfloom.example.com"],"enabled":true,"https":true,"state":"awake"},
+			{"domains":["convert.example.com"],"enabled":true,"https":true,"container":"convertx","idle_stop":"30m","state":"sleeping"},
+			{"domains":["off.example.com"],"enabled":false},
+			{"domains":["*.example.com"],"enabled":true}]}`))
+	}))
+	defer srv.Close()
+	g := &Gatehouse{URL: srv.URL + "/", Token: "ro"}
+	routes, err := g.Routes(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(routes) != 3 || routes[0].Domain != "books.example.com" || !routes[0].HTTPS {
+		t.Fatalf("routes: %+v", routes)
+	}
+	asleep, err := g.Asleep(context.Background())
+	if err != nil || len(asleep) != 1 || asleep["convertx"] != "sleeping" {
+		t.Fatalf("asleep: %+v %v", asleep, err)
+	}
+	if _, err := (&Gatehouse{URL: srv.URL, Token: "bad"}).Routes(context.Background()); err == nil {
+		t.Fatal("a bad token worked")
+	}
+}

@@ -28,6 +28,20 @@ type Outcome struct {
 	Message string
 	// CertExpires is the served certificate's expiry, for HTTPS and TLS.
 	CertExpires time.Time
+	// Asleep: Gatehouse stopped the app on purpose (scale-to-zero). It's
+	// neither up nor down, and doesn't go in the history.
+	Asleep bool
+}
+
+// Gatehouse doesn't wake an app, or count it as activity, for requests
+// with ProbeHeader; a sleeping app answers 503 with StateHeader.
+const (
+	ProbeHeader = "X-Gatehouse-Probe"
+	StateHeader = "X-Gatehouse-State"
+)
+
+func asleep(start time.Time, state string) Outcome {
+	return Outcome{Latency: time.Since(start), Asleep: true, Message: "Asleep: stopped by Gatehouse until it's used (" + state + ")"}
 }
 
 func fail(start time.Time, format string, args ...any) Outcome {
@@ -86,11 +100,15 @@ func probeHTTP(ctx context.Context, c store.Check) Outcome {
 		return fail(start, "invalid URL: %v", err)
 	}
 	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set(ProbeHeader, "1")
 	resp, err := client.Do(req)
 	if err != nil {
 		return fail(start, "%s", describeHTTPError(err))
 	}
 	defer resp.Body.Close()
+	if st := resp.Header.Get(StateHeader); st != "" && resp.StatusCode == http.StatusServiceUnavailable {
+		return asleep(start, st)
+	}
 	out := Outcome{Latency: time.Since(start)}
 	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		out.CertExpires = resp.TLS.PeerCertificates[0].NotAfter

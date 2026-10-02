@@ -110,6 +110,7 @@ const (
 	Paused      = "paused"
 	Maintenance = "maintenance"
 	Unknown     = "unknown" // not checked yet
+	Asleep      = "asleep"  // stopped on purpose by Gatehouse's scale-to-zero
 	Running     = "running" // a heartbeat job that pinged /start
 )
 
@@ -138,6 +139,9 @@ type State struct {
 	Transitions []time.Time `json:"transitions,omitempty"`
 	// Notified is the last status a notification was sent for.
 	Notified string `json:"notified,omitempty"`
+	// Asleep is set while the last check found the app stopped on purpose
+	// by Gatehouse (scale-to-zero); the status underneath is left as it was.
+	Asleep bool `json:"asleep,omitempty"`
 }
 
 type Result struct {

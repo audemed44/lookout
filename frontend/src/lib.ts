@@ -60,6 +60,7 @@ export function statusTone(s: Status): Tone {
     case "up":
       return "good";
     case "running":
+    case "asleep":
       return "accent";
     case "down":
       return "bad";
@@ -77,6 +78,7 @@ export const STATUS_LABEL: Record<Status, string> = {
   maintenance: "Maintenance",
   unknown: "Waiting",
   running: "Running",
+  asleep: "Asleep",
 };
 
 export const TYPE_LABEL: Record<CheckType, string> = {

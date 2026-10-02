@@ -321,3 +321,58 @@ func TestWindowActive(t *testing.T) {
 		t.Error("disabled window active")
 	}
 }
+
+func TestAsleepUnderGatehouse(t *testing.T) {
+	sawProbe := false
+	asleepNow := true
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawProbe = r.Header.Get(ProbeHeader) != ""
+		if asleepNow {
+			w.Header().Set(StateHeader, "sleeping")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	e, db := newEngine(t)
+	ctx := context.Background()
+	c := store.Check{Name: "convertx", Type: store.HTTP, Target: srv.URL}
+	c.Defaults()
+	if err := db.SaveCheck(ctx, &c); err != nil {
+		t.Fatal(err)
+	}
+	e.Upsert(c)
+	view := func() View { v, _ := e.View(c.ID); return v }
+
+	out, err := e.RunNow(ctx, c.ID)
+	if err != nil || !out.Asleep || !sawProbe {
+		t.Fatalf("probe: %+v %v sawProbe=%v", out, err, sawProbe)
+	}
+	for range 3 { // never counts as a failure
+		e.RunNow(ctx, c.ID)
+	}
+	if v := view(); v.Status != store.Asleep || v.State.Fails != 0 {
+		t.Fatalf("asleep: %+v", v)
+	}
+	if res, _ := db.Recent(ctx, c.ID, 10); len(res) != 0 {
+		t.Fatalf("asleep results went in the history: %+v", res)
+	}
+	asleepNow = false
+	e.RunNow(ctx, c.ID)
+	if v := view(); v.Status != store.Up || v.State.Asleep {
+		t.Fatalf("awake again: %+v", v)
+	}
+
+	// A Docker check on a container Gatehouse put to sleep: not probed.
+	d := store.Check{Name: "convertx container", Type: store.Docker, Target: "convertx"}
+	d.Defaults()
+	db.SaveCheck(ctx, &d)
+	e.Upsert(d)
+	e.SetAsleep(map[string]string{"convertx": "sleeping"})
+	e.run(ctx, d.ID)
+	if v, _ := e.View(d.ID); v.Status != store.Asleep {
+		t.Fatalf("docker check: %+v", v)
+	}
+}

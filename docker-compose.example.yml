@@ -16,7 +16,10 @@ services:
       # Notification targets can read their URL from here: add a target
       # with the URL ${TELEGRAM_URL}.
       - TELEGRAM_URL=${TELEGRAM_URL} # tgram://<bot token>/<chat id>
-      # Optional: a check for every Nginx Proxy Manager proxy host.
+      # Optional: a check for every proxy host, from Gatehouse or NPM.
+      # - LOOKOUT_GATEHOUSE_URL=http://gatehouse:8081
+      # - LOOKOUT_GATEHOUSE_TOKEN=${GATEHOUSE_DISCOVERY_TOKEN}
+      # Or from Nginx Proxy Manager:
       # - LOOKOUT_NPM_URL=http://npm:81
       # - LOOKOUT_NPM_EMAIL=${NPM_EMAIL}
       # - LOOKOUT_NPM_PASSWORD=${NPM_PASSWORD}

@@ -19,8 +19,13 @@ post to. A Go binary that idles at about 13 MB of RAM, replacing
   `/start`, `/fail`, `/<exit code>`, a POST body kept as the message). A
   heartbeat goes down when a ping is late, the job reports a failure, or it
   started and didn't finish.
-- **Proxy discovery**: a check for every domain Nginx Proxy Manager serves,
-  kept in sync. Deleting one means "don't watch this domain".
+- **Proxy discovery**: a check for every domain Gatehouse (or Nginx Proxy
+  Manager) serves, kept in sync. Deleting one means "don't watch this
+  domain".
+- **Scale-to-zero aware**: HTTP checks send `X-Gatehouse-Probe`, so they
+  never wake an app Gatehouse has put to sleep or keep it awake. A sleeping
+  app (and a Docker check on its container) shows as asleep, not down, with
+  no alert and no dent in uptime.
 - **Speedtests**: on a cron schedule against Ookla's servers (no CLI),
   with charts, history and alerts below your thresholds.
 - **Notifications**: an Apprise-compatible `POST /notify/<key>`, so apps
@@ -53,7 +58,8 @@ See [docker-compose.example.yml](docker-compose.example.yml). Set
 |---|---|
 | `LOOKOUT_TOKEN` | Required. You sign in with it; Foyer sends it as a bearer token. |
 | `TZ` | For quiet hours, digests and the speedtest schedule. |
-| `LOOKOUT_NPM_URL`, `LOOKOUT_NPM_EMAIL`, `LOOKOUT_NPM_PASSWORD` | Nginx Proxy Manager's admin API (e.g. `http://npm:81`), for discovery. |
+| `LOOKOUT_GATEHOUSE_URL`, `LOOKOUT_GATEHOUSE_TOKEN` | Gatehouse's admin port (e.g. `http://gatehouse:8081`) and its discovery (or admin) token, for discovery and scale-to-zero. |
+| `LOOKOUT_NPM_URL`, `LOOKOUT_NPM_EMAIL`, `LOOKOUT_NPM_PASSWORD` | Or Nginx Proxy Manager's admin API (e.g. `http://npm:81`), for discovery. |
 | `LOOKOUT_CONFIG` | A YAML file merged in at start (default `/data/lookout.yaml`). |
 | `LOOKOUT_DOCKER_SOCKET` | Default `/var/run/docker.sock`; container checks need it. |
 | `LOOKOUT_PORT`, `LOOKOUT_DATA_DIR` | Default `8080`, `/data`. |
