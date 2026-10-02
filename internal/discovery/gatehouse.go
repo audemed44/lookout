@@ -87,6 +87,12 @@ func (g *Gatehouse) Asleep(ctx context.Context) (map[string]string, error) {
 	return out, nil
 }
 
+// IsSource reports whether a check's source is a proxy discovery source,
+// so deleting the check should ignore its domain.
+func IsSource(name string) bool {
+	return name == "npm" || name == "gatehouse"
+}
+
 // Sleeper is a source that knows which containers are asleep on purpose.
 type Sleeper interface {
 	Asleep(ctx context.Context) (map[string]string, error)

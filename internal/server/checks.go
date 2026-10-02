@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"github.com/audemed44/lookout/internal/discovery"
 	"net/http"
 	"slices"
 	"time"
@@ -287,7 +288,7 @@ func (s *Server) deleteCheck(w http.ResponseWriter, r *http.Request) {
 	s.Engine.Remove(id)
 	// A discovered check would come back on the next sync; deleting it
 	// means "don't watch this domain".
-	if c.Source == "npm" && c.SourceKey != "" {
+	if discovery.IsSource(c.Source) && c.SourceKey != "" {
 		if err := s.ignore(r.Context(), c.SourceKey, true); err != nil {
 			storeError(w, err)
 			return
