@@ -59,6 +59,7 @@ See [docker-compose.example.yml](docker-compose.example.yml). Set
 | `LOOKOUT_TOKEN` | Required. You sign in with it; Foyer sends it as a bearer token. |
 | `TZ` | For quiet hours, digests and the speedtest schedule. |
 | `LOOKOUT_GATEHOUSE_URL`, `LOOKOUT_GATEHOUSE_TOKEN` | Gatehouse's admin port (e.g. `http://gatehouse:8081`) and its discovery (or admin) token, for discovery and scale-to-zero. |
+| `HOMEPAGE_URL` | Optional. Foyer's address, for a link back to it in the header. |
 | `LOOKOUT_NPM_URL`, `LOOKOUT_NPM_EMAIL`, `LOOKOUT_NPM_PASSWORD` | Or Nginx Proxy Manager's admin API (e.g. `http://npm:81`), for discovery. |
 | `LOOKOUT_CONFIG` | A YAML file merged in at start (default `/data/lookout.yaml`). |
 | `LOOKOUT_DOCKER_SOCKET` | Default `/var/run/docker.sock`; container checks need it. |

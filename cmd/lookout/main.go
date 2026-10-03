@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 	_ "time/tzdata" // the runtime image may have no zoneinfo; TZ needs this
@@ -82,7 +83,7 @@ func main() {
 	}
 	app := server.New(server.Options{
 		Store: db, Engine: engine, Notifier: notifier, Speedtest: runner, Docker: dock,
-		Proxy: proxy, Token: token, DataDir: dataDir, Web: dist,
+		Proxy: proxy, Token: token, FoyerURL: foyerURL(), DataDir: dataDir, Web: dist,
 	})
 	if err := engine.Start(ctx); err != nil {
 		slog.Error("could not start the checks", "err", err)
@@ -144,4 +145,15 @@ func healthcheck() int {
 		return 1
 	}
 	return 0
+}
+
+// foyerURL is HOMEPAGE_URL, the link back to Foyer in the header, when
+// it's an http(s) address.
+func foyerURL() string {
+	u := os.Getenv("HOMEPAGE_URL")
+	if u != "" && !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
+		slog.Warn("HOMEPAGE_URL isn't an http(s) address; ignoring it", "url", u)
+		return ""
+	}
+	return u
 }

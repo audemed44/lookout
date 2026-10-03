@@ -26,10 +26,11 @@ type Options struct {
 	Speedtest *speedtest.Runner
 	Docker    *checks.DockerClient // nil without a socket
 	// Proxy is where discovery reads routes from; nil when not configured.
-	Proxy   discovery.Source
-	Token   string
-	DataDir string // for uploads being imported
-	Web     fs.FS
+	Proxy    discovery.Source
+	Token    string
+	DataDir  string // for uploads being imported
+	Web      fs.FS
+	FoyerURL string // Foyer, the homelab's start page, linked from the header
 }
 
 type Server struct {

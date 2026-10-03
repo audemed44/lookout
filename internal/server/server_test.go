@@ -41,7 +41,7 @@ func setup(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	app := New(Options{
-		Store: db, Engine: e, Notifier: n, Speedtest: speedtest.New(db, n), Token: "tok", DataDir: t.TempDir(),
+		Store: db, Engine: e, Notifier: n, Speedtest: speedtest.New(db, n), Token: "tok", DataDir: t.TempDir(), FoyerURL: "https://home.example",
 		Web: fstest.MapFS{"index.html": {Data: []byte("<!doctype html>app")}},
 	})
 	srv := httptest.NewServer(app.Handler())
@@ -89,6 +89,9 @@ func TestAuth(t *testing.T) {
 	}
 	if code, _ := e.do("GET", "/api/checks", "tok", ""); code != 200 {
 		t.Errorf("token: %d", code)
+	}
+	if code, body := e.do("GET", "/api/session", "", ""); code != 200 || !strings.Contains(body, `"foyer_url":"https://home.example"`) {
+		t.Errorf("session: %d %s", code, body)
 	}
 	if code, _ := e.do("POST", "/api/checks", "tok", `{"name":"x","type":"tcp","target":"a:1"}`, "Origin", "https://evil.example.com"); code != 403 {
 		t.Errorf("cross-origin: %d", code)

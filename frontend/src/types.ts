@@ -237,6 +237,8 @@ export interface DiscoveryInfo {
 
 export interface Session {
   authenticated: boolean;
+  /** Foyer, the homelab's start page (HOMEPAGE_URL). */
+  foyer_url?: string;
 }
 
 export interface PublicStatus {
