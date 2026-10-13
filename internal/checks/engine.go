@@ -188,9 +188,11 @@ func (e *Engine) Record(id int64, out Outcome) {
 	e.mu.Unlock()
 
 	if ev.opened {
+		slog.Warn("check down", "check", c.Name, "type", c.Type, "message", out.Message)
 		_ = e.Store.OpenIncident(ctx, id, now, out.Message)
 	}
 	if ev.closed {
+		slog.Info("check up", "check", c.Name, "type", c.Type)
 		_ = e.Store.CloseIncident(ctx, id, now)
 	}
 	if err := e.Store.SaveState(ctx, id, saved); err != nil {

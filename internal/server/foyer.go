@@ -50,7 +50,7 @@ type foyerWidget struct {
 func (s *Server) foyerWidget(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.rows(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	c := count(rows)

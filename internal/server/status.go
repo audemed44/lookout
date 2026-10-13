@@ -26,7 +26,7 @@ type statusCheck struct {
 func (s *Server) publicStatus(w http.ResponseWriter, r *http.Request) {
 	settings, err := s.Store.Settings(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	if !settings.StatusPage.Enabled {
@@ -45,7 +45,7 @@ func (s *Server) publicStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		rolls, err := s.Store.Rollups(r.Context(), v.Check.ID, start)
 		if err != nil {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 		sc := statusCheck{Name: v.Check.Name, Group: v.Check.Group, Status: v.Status, Since: v.State.Since, Uptime: -1, Days: make([]float64, 30)}

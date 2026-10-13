@@ -86,17 +86,17 @@ func count(rows []CheckRow) Counts {
 func (s *Server) overview(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.rows(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	latest, err := s.Store.LatestSpeedtest(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	incidents, err := s.Store.Incidents(r.Context(), 0, 8)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	queued, _ := s.Store.QueuedCount(r.Context())
@@ -113,7 +113,7 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listChecks(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.rows(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, rows)
@@ -133,18 +133,18 @@ func (s *Server) getCheck(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uptime, err := s.Store.Uptime(ctx, now.Add(-24*time.Hour), now.AddDate(0, 0, -7), now.AddDate(0, 0, -30), now.AddDate(0, 0, -365))
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	recent, err := s.Store.Recent(ctx, id, 30)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	slices.Reverse(recent)
 	incidents, err := s.Store.Incidents(ctx, id, 50)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	up := uptime[id]
@@ -183,7 +183,7 @@ func (s *Server) checkHistory(w http.ResponseWriter, r *http.Request) {
 	if rng == "24h" {
 		results, err := s.Store.Recent(r.Context(), id, 5000)
 		if err != nil {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 		for _, res := range results {
@@ -201,7 +201,7 @@ func (s *Server) checkHistory(w http.ResponseWriter, r *http.Request) {
 	} else {
 		rolls, err := s.Store.Rollups(r.Context(), id, since)
 		if err != nil {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 		for _, ru := range rolls {
@@ -218,7 +218,7 @@ func (s *Server) checkHistory(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listIncidents(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Store.Incidents(r.Context(), 0, 100)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -235,7 +235,7 @@ func (s *Server) createCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.SaveCheck(r.Context(), &c); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.Engine.Upsert(c)
@@ -250,7 +250,7 @@ func (s *Server) updateCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	old, err := s.Store.Check(r.Context(), id)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	var c store.Check
@@ -263,7 +263,7 @@ func (s *Server) updateCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.SaveCheck(r.Context(), &c); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.Engine.Upsert(c)
@@ -278,11 +278,11 @@ func (s *Server) deleteCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := s.Store.Check(r.Context(), id)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	if err := s.Store.DeleteCheck(r.Context(), id); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.Engine.Remove(id)
@@ -290,7 +290,7 @@ func (s *Server) deleteCheck(w http.ResponseWriter, r *http.Request) {
 	// means "don't watch this domain".
 	if discovery.IsSource(c.Source) && c.SourceKey != "" {
 		if err := s.ignore(r.Context(), c.SourceKey, true); err != nil {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 	}
@@ -305,7 +305,7 @@ func (s *Server) runCheck(w http.ResponseWriter, r *http.Request) {
 	out, err := s.Engine.RunNow(r.Context(), id)
 	if err != nil {
 		if err == store.ErrNotFound {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -352,12 +352,12 @@ func (s *Server) pauseCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := s.Store.Check(r.Context(), id)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	c.Paused = body.Paused
 	if err := s.Store.SaveCheck(r.Context(), &c); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.Engine.Upsert(c)
@@ -382,7 +382,7 @@ func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listWindows(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Store.Windows(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	now := time.Now()
@@ -434,7 +434,7 @@ func (s *Server) saveWindow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.SaveWindow(r.Context(), &win); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.reloadWindows(r.Context())
@@ -447,7 +447,7 @@ func (s *Server) deleteWindow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.DeleteWindow(r.Context(), id); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.reloadWindows(r.Context())

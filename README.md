@@ -64,6 +64,8 @@ See [docker-compose.example.yml](docker-compose.example.yml). Set
 | `LOOKOUT_CONFIG` | A YAML file merged in at start (default `/data/lookout.yaml`). |
 | `LOOKOUT_DOCKER_SOCKET` | Default `/var/run/docker.sock`; container checks need it. |
 | `LOOKOUT_PORT`, `LOOKOUT_DATA_DIR` | Default `8080`, `/data`. |
+| `LOG_LEVEL` | `info` |
+| `LOG_FORMAT` | `json` |
 
 Ping checks use unprivileged ICMP sockets, which Docker allows by default.
 Outside Docker, allow them with `sysctl net.ipv4.ping_group_range="0 2147483647"`.
@@ -120,6 +122,17 @@ your-job; curl -fsS -m 10 https://lookout.example.com/ping/<token>/$?
 
 Monitors imported from Uptime Kuma keep their push tokens, so jobs only
 need the host changed.
+
+## Logs
+
+Lookout writes one JSON object per line on stderr, for
+[Logbook](https://github.com/audemed44/logbook) to collect: every request
+(failures as errors, changes at info, plain reads at debug), background
+jobs with how long they took, and an audit line for sign-ins. Nothing it
+stores goes into the logs. A message repeated more than 20 times a minute
+is held back and counted, at most 600 lines a minute get out, and long
+values are cut at 4 KB, so a failing Lookout can't flood the disk. Docker's
+own copy is capped in compose (`logging:`, 3 × 10 MB).
 
 ## Foyer
 

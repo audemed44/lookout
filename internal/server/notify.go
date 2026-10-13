@@ -34,7 +34,7 @@ func (s *Server) notifyHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err != nil {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 		source, tags = snd.Name, snd.Tags
@@ -125,7 +125,7 @@ func viewTarget(t store.Target) targetView {
 func (s *Server) listTargets(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Store.Targets(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	out := make([]targetView, len(list))
@@ -149,7 +149,7 @@ func (s *Server) saveTarget(w http.ResponseWriter, r *http.Request) {
 		}
 		old, err := s.Store.Target(r.Context(), id)
 		if err != nil {
-			storeError(w, err)
+			storeError(w, r, err)
 			return
 		}
 		t.ID = id
@@ -168,7 +168,7 @@ func (s *Server) saveTarget(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := s.Store.SaveTarget(r.Context(), &t); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, viewTarget(t))
@@ -180,7 +180,7 @@ func (s *Server) deleteTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.DeleteTarget(r.Context(), id); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -193,7 +193,7 @@ func (s *Server) testTarget(w http.ResponseWriter, r *http.Request) {
 	}
 	t, err := s.Store.Target(r.Context(), id)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	if err := s.Notifier.Test(r.Context(), t); err != nil {
@@ -206,7 +206,7 @@ func (s *Server) testTarget(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listRoutes(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Store.Routes(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -240,7 +240,7 @@ func (s *Server) saveRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	rt.Tags = notify.ParseTags(strings.Join(rt.Tags, ","))
 	if err := s.Store.SaveRoute(r.Context(), &rt); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, rt)
@@ -252,7 +252,7 @@ func (s *Server) deleteRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.DeleteRoute(r.Context(), id); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -261,7 +261,7 @@ func (s *Server) deleteRoute(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listSenders(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Store.Senders(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -300,7 +300,7 @@ func (s *Server) saveSender(w http.ResponseWriter, r *http.Request) {
 	snd.Tags = notify.ParseTags(strings.Join(snd.Tags, ","))
 	snd.Created = time.Now()
 	if err := s.Store.SaveSender(r.Context(), snd); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snd)
@@ -308,7 +308,7 @@ func (s *Server) saveSender(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteSender(w http.ResponseWriter, r *http.Request) {
 	if err := s.Store.DeleteSender(r.Context(), r.PathValue("key")); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -323,7 +323,7 @@ func (s *Server) listNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 	list, err := s.Store.Notifications(r.Context(), before, limit)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	queued, _ := s.Store.QueuedCount(r.Context())
