@@ -18,6 +18,7 @@ import (
 
 	"github.com/audemed44/lookout/internal/checks"
 	"github.com/audemed44/lookout/internal/discovery"
+	"github.com/audemed44/lookout/internal/logging"
 	"github.com/audemed44/lookout/internal/notify"
 	"github.com/audemed44/lookout/internal/server"
 	"github.com/audemed44/lookout/internal/speedtest"
@@ -36,11 +37,11 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		os.Exit(healthcheck())
 	}
-	level := slog.LevelInfo
-	if os.Getenv("LOOKOUT_DEBUG") != "" {
-		level = slog.LevelDebug
+	// LOOKOUT_DEBUG still works: it's LOG_LEVEL=debug.
+	if os.Getenv("LOOKOUT_DEBUG") != "" && os.Getenv("LOG_LEVEL") == "" {
+		os.Setenv("LOG_LEVEL", "debug")
 	}
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
+	logging.Setup("lookout", os.Stderr)
 
 	token := os.Getenv("LOOKOUT_TOKEN")
 	if token == "" {
@@ -99,6 +100,7 @@ func main() {
 		Addr:              ":" + env("LOOKOUT_PORT", "8080"),
 		Handler:           app.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
+		ErrorLog:          logging.ServerErrorLog(),
 	}
 	go func() {
 		<-ctx.Done()

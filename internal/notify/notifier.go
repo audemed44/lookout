@@ -117,7 +117,9 @@ func (n *Notifier) Notify(ctx context.Context, note Note) (store.Notification, e
 			deliveries[i].State = store.Sent
 			if err := deliver(ctx, p.target, Message{Title: rec.Title, Body: rec.Body, Type: rec.Type}); err != nil {
 				deliveries[i].State, deliveries[i].Error = store.Failed, err.Error()
-				slog.Warn("notification failed", "target", p.target.Name, "err", err)
+				slog.Warn("notification failed", "target", p.target.Name, "title", rec.Title, "err", err)
+			} else {
+				slog.Info("notification sent", "target", p.target.Name, "title", rec.Title)
 			}
 		}()
 	}

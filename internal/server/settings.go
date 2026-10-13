@@ -24,7 +24,7 @@ import (
 func (s *Server) getSettings(w http.ResponseWriter, r *http.Request) {
 	st, err := s.Store.Settings(r.Context())
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, st)
@@ -46,7 +46,7 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := s.Store.SaveSettings(r.Context(), st); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.getSettings(w, r)
@@ -62,7 +62,7 @@ func (s *Server) listSpeedtests(w http.ResponseWriter, r *http.Request) {
 	}
 	list, err := s.Store.Speedtests(r.Context(), time.Now().Add(-span))
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	running, started, next := s.Speedtest.Status()
@@ -83,7 +83,7 @@ func (s *Server) deleteSpeedtest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.DeleteSpeedtest(r.Context(), id); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -225,7 +225,7 @@ func (s *Server) ignoreDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.ignore(r.Context(), body.Domain, body.Ignore); err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	s.getSettings(w, r)
@@ -258,7 +258,7 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, limit int64) (st
 	defer f.Close()
 	tmp, err := os.CreateTemp(s.DataDir, "import-*.db")
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return "", false
 	}
 	_, err = io.Copy(tmp, f)
@@ -302,7 +302,7 @@ func (s *Server) importSpeedtestTracker(w http.ResponseWriter, r *http.Request) 
 func (s *Server) exportConfig(w http.ResponseWriter, r *http.Request) {
 	out, err := config.Export(r.Context(), s.Store)
 	if err != nil {
-		storeError(w, err)
+		storeError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")

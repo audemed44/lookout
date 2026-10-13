@@ -14,6 +14,7 @@ import (
 
 	"github.com/audemed44/lookout/internal/checks"
 	"github.com/audemed44/lookout/internal/discovery"
+	"github.com/audemed44/lookout/internal/logging"
 	"github.com/audemed44/lookout/internal/notify"
 	"github.com/audemed44/lookout/internal/speedtest"
 	"github.com/audemed44/lookout/internal/store"
@@ -115,7 +116,7 @@ func (s *Server) Handler() http.Handler {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.Handle("/", s.spa())
-	return securityHeaders(sameOrigin(mux))
+	return logging.Requests(securityHeaders(sameOrigin(mux)))
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -132,12 +133,12 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 }
 
 // storeError answers 404 for missing things and 500 otherwise.
-func storeError(w http.ResponseWriter, err error) {
+func storeError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
-	slog.Error("request failed", "err", err)
+	slog.ErrorContext(r.Context(), "request failed", "err", err)
 	writeError(w, http.StatusInternalServerError, err.Error())
 }
 
