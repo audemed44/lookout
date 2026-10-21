@@ -1,6 +1,6 @@
 module github.com/audemed44/lookout
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/showwin/speedtest-go v1.8.3
